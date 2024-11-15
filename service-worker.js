@@ -8,17 +8,21 @@ self.addEventListener('install', event => {
         try {
             console.log('Service Worker: Install.Start');
 
-            const response = await fetch('/assets.zip'); //Здесь можно установить путь до CDNки с билдом
+            const response = await fetch('./build.zip'); //Здесь можно установить путь до CDNки с билдом
 
             if (!response.ok) {
                 throw new Error('Not found build from server');
             }
+
+            console.log("Found zip!");
 
             const zip_blob = await response.blob();
 
             const zip = await JSZip.loadAsync(zip_blob);
 
             const files = Object.entries(zip.files);
+
+            console.log("files count", files.length);
 
             for (const [path, file] of files) {
                 if(file.dir) {
@@ -33,7 +37,7 @@ self.addEventListener('install', event => {
 
                 const response = new Response(file_blob, header_data);
 
-                await cache.put(new Request('/' + path), response);
+                await cache.put(new Request('/game/' + path), response);
 
                 console.log(`Service Worker: Cached ${path}`);
             }
@@ -60,11 +64,13 @@ self.addEventListener('fetch', event => {
 
     const request_url = new URL(event.request.url);
 
+    request_url.pathname = request_url.pathname.replace("//", "/");
+
     console.log("Service Worker:", request_url);
 
-    if (request_url.pathname === '/' || request_url.pathname === '/index.html') {
+    if (request_url.pathname === '/game/' || request_url.pathname === '/game/index.html') {
         event.respondWith(
-            caches.match('/index.html').then(response => {
+            caches.match('/game/index.html').then(response => {
                 if (response) {
                     console.log('Service Worker: index.html from cache');
                     return response;
